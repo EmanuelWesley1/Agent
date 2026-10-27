@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assistente PME IA - Gestão & Cognição</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#090d16',
+                        sidebarBg: '#0e1525',
+                        cardBg: '#131c31',
+                        cardBorder: '#1e293b',
+                        brandPrimary: '#6366f1',
+                        brandHover: '#4f46e5'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #090d16; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+        .navbtn { display:flex; align-items:center; gap:.75rem; width:100%; padding:.75rem 1rem; border-radius:.75rem; font-size:.875rem; font-weight:500; color:#94a3b8; transition:.15s; text-align:left; }
+        .navbtn:hover { background:rgba(30,41,59,.5); color:#e2e8f0; }
+        .navbtn.active { background:#6366f1; color:#fff; box-shadow:0 10px 15px -3px rgba(79,70,229,.3); }
+        .mnav { flex:none; padding:.5rem .9rem; border-radius:.6rem; font-size:.75rem; font-weight:600; color:#94a3b8; background:#131c31; border:1px solid #1e293b; white-space:nowrap; }
+        .mnav.active { background:#6366f1; color:#fff; border-color:#6366f1; }
+
+        .md { color:#cbd5e1; font-size:.875rem; line-height:1.65; }
+        .md h1 { font-size:1.35rem; font-weight:700; color:#fff; margin:0 0 .6rem; }
+        .md h2 { font-size:1.05rem; font-weight:700; color:#fff; margin:1.3rem 0 .5rem; padding-bottom:.25rem; border-bottom:1px solid #1e293b; }
+        .md h3 { font-size:.95rem; font-weight:600; color:#e2e8f0; margin:1rem 0 .4rem; }
+        .md p { margin:.5rem 0; }
+        .md ul { list-style:disc; padding-left:1.25rem; margin:.5rem 0; }
+        .md ol { list-style:decimal; padding-left:1.25rem; margin:.5rem 0; }
+        .md strong { color:#fff; }
+        .md em { color:#94a3b8; }
+        .md blockquote { border-left:3px solid #6366f1; padding-left:.75rem; color:#94a3b8; margin:.75rem 0; }
+        .md table { width:100%; border-collapse:collapse; margin:.75rem 0; font-size:.8rem; }
+        .md th, .md td { border:1px solid #1e293b; padding:.4rem .7rem; text-align:left; }
+        .md th { background:#0e1525; color:#e2e8f0; }
+        .md code { background:#0e1525; padding:.1rem .3rem; border-radius:.25rem; }
+
+        .sw { width:2.5rem; height:1.4rem; border-radius:999px; background:#334155; position:relative; transition:.2s; flex:none; }
+        .sw::after { content:''; position:absolute; top:.2rem; left:.2rem; width:1rem; height:1rem; border-radius:50%; background:#fff; transition:.2s; }
+        .sw.on { background:#10b981; }
+        .sw.on::after { left:1.25rem; }
+        .field { width:100%; background:#090d16; border:1px solid #1e293b; border-radius:.75rem; padding:.7rem .9rem; font-size:.875rem; color:#e2e8f0; outline:none; transition:.15s; }
+        .field:focus { border-color:#6366f1; }
+        select.field option, select.field optgroup { background:#0e1525; }
+    </style>
+</head>
+<body class="bg-darkBg text-slate-100 min-h-screen flex antialiased">
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="w-72 bg-sidebarBg border-r border-cardBorder flex-col justify-between hidden md:flex select-none sticky top-0 h-screen transition-all duration-300">
+        <div>
+            <div class="p-6 flex items-center justify-between border-b border-cardBorder">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+                        <i class="fa-solid fa-brain text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-sm tracking-wide text-white">Assistente PME IA</h1>
+                        <span class="text-xs text-indigo-400 font-medium">Gestão & Cognição</span>
+                    </div>
+                </div>
+                <button id="close-sidebar" class="text-slate-400 hover:text-white p-1 rounded-lg transition-colors" title="Fechar barra lateral">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <nav class="p-4 space-y-1.5">
+                <button class="navbtn" data-tab="visao-geral"><i class="fa-solid fa-chart-pie w-5"></i><span>Visão Geral</span></button>
+                <button class="navbtn" data-tab="analise-planilhas"><i class="fa-solid fa-file-excel w-5"></i><span>Análise de Planilhas</span></button>
+            </nav>
+        </div>
+        <div class="p-4 border-t border-cardBorder">
+            <div class="bg-cardBg border border-cardBorder p-3 rounded-xl flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">S</div>
+                <div class="overflow-hidden">
+                    <p class="text-xs font-semibold text-slate-200 truncate">Sua Empresa SaaS</p>
+                    <p id="api-status" class="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                        <span id="api-dot" class="w-1.5 h-1.5 rounded-full bg-slate-500"></span> <span id="api-text">Verificando IA…</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- CONTEÚDO -->
+    <main class="flex-1 flex flex-col min-w-0">
+        <header class="min-h-[5rem] border-b border-cardBorder px-4 md:px-8 py-3 flex items-center justify-between gap-3 bg-darkBg/80 backdrop-blur sticky top-0 z-20">
+            <div class="flex items-center space-x-3">
+                <button id="open-sidebar" class="hidden text-slate-400 hover:text-white p-2 rounded-xl border border-cardBorder bg-cardBg transition-colors" title="Abrir barra lateral">
+                    <i class="fa-solid fa-bars text-sm"></i>
+                </button>
+                <h2 id="page-title" class="text-base md:text-xl font-bold text-white tracking-tight"></h2>
+            </div>
+            <div class="flex items-center space-x-3 shrink-0">
+                <div class="hidden sm:flex bg-cardBg border border-cardBorder px-4 py-2 rounded-xl text-xs font-medium text-slate-300 items-center space-x-2">
+                    <i class="fa-regular fa-calendar text-indigo-400"></i>
+                    <span id="date-pill"></span>
+                </div>
+                <button id="new-query" class="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-lg shadow-indigo-600/20 flex items-center space-x-2 transition-all">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i><span class="hidden sm:inline">Nova Consulta IA</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Navegação mobile -->
+        <div class="md:hidden flex gap-2 overflow-x-auto px-4 py-3 border-b border-cardBorder bg-sidebarBg">
+            <button class="mnav" data-tab="visao-geral">Visão Geral</button>
+            <button class="mnav" data-tab="analise-planilhas">Planilhas</button>
+        </div>
+
+        <div class="p-4 md:p-8 max-w-7xl w-full mx-auto space-y-8 flex-1">
+
+            <!-- ================= 1. ANÁLISE DE PLANILHAS ================= -->
+            <section id="tab-analise-planilhas" class="space-y-6">
+                <div class="bg-cardBg border border-cardBorder p-5 rounded-2xl shadow-xl space-y-4">
+                    <label class="block text-xs font-semibold text-indigo-400 uppercase tracking-wider">
+                        <i class="fa-solid fa-magnifying-glass mr-1"></i> Faça uma pergunta em linguagem natural sobre seus dados
+                    </label>
+                    <form id="q-form" class="flex flex-col sm:flex-row gap-3">
+                        <div class="relative flex-1">
+                            <i class="fa-solid fa-wand-magic-sparkles absolute left-4 top-3.5 text-indigo-400 text-sm"></i>
+                            <input id="q-input" type="text" autocomplete="off" placeholder="Ex: Qual o produto com maior margem? Ou: identifique valores discrepantes..." class="field pl-11">
+                        </div>
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl text-sm font-semibold shadow-md shadow-indigo-600/30 flex items-center justify-center space-x-2 transition-all">
+                            <span>Analisar</span><i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </form>
+                    <div id="q-chips" class="flex flex-wrap gap-2">
+                        <button data-q="Resumo geral da planilha" class="text-xs bg-darkBg border border-cardBorder hover:border-indigo-500 text-slate-300 px-3 py-1.5 rounded-full transition-colors">Resumo geral</button>
+                        <button data-q="Identifique valores discrepantes" class="text-xs bg-darkBg border border-cardBorder hover:border-indigo-500 text-slate-300 px-3 py-1.5 rounded-full transition-colors">Valores discrepantes</button>
+                        <button data-q="Qual o maior valor?" class="text-xs bg-darkBg border border-cardBorder hover:border-indigo-500 text-slate-300 px-3 py-1.5 rounded-full transition-colors">Maior valor</button>
+                        <button data-q="Mostre a média" class="text-xs bg-darkBg border border-cardBorder hover:border-indigo-500 text-slate-300 px-3 py-1.5 rounded-full transition-colors">Médias</button>
+                        <button data-q="Quantas linhas tem a planilha?" class="text-xs bg-darkBg border border-cardBorder hover:border-indigo-500 text-slate-300 px-3 py-1.5 rounded-full transition-colors">Quantas linhas?</button>
+                    </div>
+                    <div id="q-answer" class="hidden bg-darkBg border border-cardBorder rounded-xl p-4 space-y-3"></div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div id="dropzone" class="lg:col-span-1 bg-cardBg border-2 border-dashed border-indigo-500/40 hover:border-indigo-500 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all group relative overflow-hidden bg-gradient-to-b from-indigo-500/5 to-transparent min-h-[220px]">
+                        <input type="file" id="fileInput" class="absolute inset-0 opacity-0 cursor-pointer" accept=".csv,.tsv,.xlsx,.xls">
+                        <div class="w-16 h-16 rounded-2xl bg-indigo-600/10 text-indigo-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-200 text-base mb-1">Arraste sua planilha aqui</h3>
+                        <p class="text-xs text-slate-400 mb-5">Suporta arquivos .XLSX, .XLS e .CSV</p>
+                        <span class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-md shadow-indigo-600/30 group-hover:bg-indigo-500 transition-colors">Selecionar Arquivo</span>
+                    </div>
+
+                    <div class="lg:col-span-2 space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-cardBg border border-indigo-500/50 p-4 rounded-xl relative overflow-hidden">
+                                <div class="absolute top-0 right-0 w-2 h-full bg-indigo-500"></div>
+                                <div class="flex items-start space-x-3 pr-3">
+                                    <div class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center shrink-0"><i class="fa-solid fa-file-excel"></i></div>
+                                    <div class="overflow-hidden">
+                                        <h4 class="font-semibold text-sm text-white truncate" id="selected-filename">Nenhum arquivo selecionado</h4>
+                                        <p class="text-xs text-slate-400 mt-0.5" id="file-meta">Pronto para processamento via Agno + Gemini</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-cardBg border border-cardBorder p-4 rounded-xl space-y-2">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fa-solid fa-link text-slate-400"></i>
+                                    <h4 class="font-semibold text-sm text-slate-200">Google Sheets</h4>
+                                </div>
+                                <div class="flex gap-2">
+                                    <input id="sheets-url" type="url" placeholder="Cole o link da planilha" class="field !py-2 !text-xs">
+                                    <button id="sheets-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 rounded-xl text-xs font-semibold shrink-0">Importar</button>
+                                </div>
+                                <p class="text-[10px] text-slate-500">A planilha precisa estar compartilhada como "Qualquer pessoa com o link".</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-cardBg border border-cardBorder p-5 rounded-2xl">
+                            <div class="flex items-center justify-between gap-3 mb-2">
+                                <div class="flex items-center space-x-2 text-indigo-400 text-xs font-semibold">
+                                    <i class="fa-solid fa-robot"></i><span>Status do Agente:</span>
+                                </div>
+                                <button id="sample-btn" class="text-[11px] text-indigo-300 hover:text-white border border-indigo-500/40 hover:bg-indigo-600/30 px-3 py-1 rounded-lg transition-colors"><i class="fa-solid fa-flask mr-1"></i>Usar dados de exemplo</button>
+                            </div>
+                            <p class="text-xs text-slate-300 leading-relaxed" id="status-message">Aguardando envio de arquivo Excel ou CSV para iniciar a análise inteligente e gerar relatórios e dashboards.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Área após carregar dados -->
+                <div id="ds-area" class="hidden space-y-6">
+                    <div id="ds-kpis" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+
+                    <div class="bg-cardBg border border-cardBorder p-6 rounded-2xl space-y-4">
+                        <div class="flex flex-wrap items-end gap-3 justify-between">
+                            <h3 class="text-base font-bold text-white flex items-center gap-2"><i class="fa-solid fa-chart-column text-indigo-400"></i> Explorar dados</h3>
+                            <div class="flex flex-wrap gap-2">
+                                <div><label class="block text-[10px] text-slate-500 mb-1">Valor</label><select id="ds-val" class="field !py-1.5 !text-xs !w-auto"></select></div>
+                                <div><label class="block text-[10px] text-slate-500 mb-1">Agrupar por</label><select id="ds-grp" class="field !py-1.5 !text-xs !w-auto"></select></div>
+                                <div><label class="block text-[10px] text-slate-500 mb-1">Cálculo</label><select id="ds-agg" class="field !py-1.5 !text-xs !w-auto"><option value="sum">Soma</option><option value="avg">Média</option><option value="med">Mediana</option></select></div>
+                                <div><label class="block text-[10px] text-slate-500 mb-1">Gráfico</label><select id="ds-type" class="field !py-1.5 !text-xs !w-auto"><option value="bar">Barras</option><option value="line">Linha</option><option value="doughnut">Rosca</option></select></div>                            </div>
+                        </div>
+                        <div class="relative h-72">
+                            <canvas id="ds-chart"></canvas>
+                            <p id="ds-chart-empty" class="hidden absolute inset-0 flex items-center justify-center text-sm text-slate-500">Esta planilha não possui colunas numéricas para gráficos.</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-cardBg border border-cardBorder p-6 rounded-2xl space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <h3 class="text-base font-bold text-white flex items-center gap-2"><i class="fa-solid fa-table text-indigo-400"></i> Pré-visualização <span id="ds-preview-note" class="text-xs font-normal text-slate-500"></span></h3>
+                            <div id="ds-sort-box" class="flex items-center gap-2"><label class="text-[11px] text-slate-500">Pontuação:</label><select id="ds-sort" class="field !py-1.5 !text-xs !w-auto"></select></div>
+                        </div>
+                        <div id="ds-preview" class="overflow-x-auto"></div>
+                    </div>
+
+                    <div class="bg-cardBg border border-indigo-500/30 p-6 rounded-2xl space-y-4">
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <h3 class="text-base font-bold text-white flex items-center gap-2"><i class="fa-solid fa-wand-magic-sparkles text-indigo-400"></i> Relatório e dashboard com IA</h3>
+                                <p class="text-xs text-slate-400 mt-1">Envia a planilha ao backend (Agno + Gemini) para gerar um relatório executivo e um dashboard HTML.</p>
+                            </div>
+                            <button id="ai-btn" class="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white px-5 py-2.5 rounded-xl text-xs font-semibold shadow-lg shadow-indigo-600/20 flex items-center space-x-2 transition-all">
+                                <i class="fa-solid fa-bolt"></i><span>Gerar com IA</span>
+                            </button>
+                        </div>
+                        <div id="ai-out" class="space-y-4"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= 2. VISÃO GERAL ================= -->
+            <section id="tab-visao-geral" class="space-y-6 hidden">
+                <div id="ov-kpis" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-cardBg border border-cardBorder p-6 rounded-2xl space-y-4">
+                        <h3 class="font-bold text-white text-base" id="ov-chart-title">Análise Consolidada da Planilha</h3>
+                        <div class="relative h-64">
+                            <canvas id="ov-chart"></canvas>
+                            <p id="ov-chart-empty" class="hidden absolute inset-0 flex items-center justify-center text-sm text-slate-500">Carregue uma planilha para visualizar os dados agrupados aqui.</p>
+                        </div>
+                    </div>
+                    <div id="ov-ds" class="bg-cardBg border border-cardBorder p-6 rounded-2xl space-y-3"></div>
+                </div>
+
+                <div class="bg-cardBg border border-cardBorder p-6 rounded-2xl space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-bold text-white text-base">Insights Proativos da IA</h3>
+                        <button id="ov-restore" class="text-xs text-slate-400 hover:text-white hidden"><i class="fa-solid fa-rotate-left mr-1"></i>Restaurar dispensados</button>
+                    </div>
+                    <div id="ov-insights" class="space-y-3"></div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <div id="toasts" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
+
+<script>
+/* ============================================================
+   Utilidades
+============================================================ */
+const API_URL = 'http://localhost:8000';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const fmt = (n, d = 2) => Number.isFinite(n) ? n.toLocaleString('pt-BR', { maximumFractionDigits: d }) : '—';
+const uid = () => Math.random().toString(36).slice(2, 9);
+const mdHtml = s => (window.marked && window.DOMPurify) ? DOMPurify.sanitize(marked.parse(s)) : '<pre>' + esc(s) + '</pre>';
+const store = {
+    get(k, d) { try { const v = JSON.parse(localStorage.getItem('pme_' + k)); return v ?? d; } catch { return d; } },
+    set(k, v) { try { localStorage.setItem('pme_' + k, JSON.stringify(v)); } catch {} }
+};
+
+function toast(msg, type = 'info') {
+    const colors = { info: 'border-indigo-500/40 text-slate-100', ok: 'border-emerald-500/40 text-emerald-200', err: 'border-rose-500/40 text-rose-200', warn: 'border-amber-500/40 text-amber-200' };
+    const el = document.createElement('div');
+    el.className = `bg-cardBg border ${colors[type] || colors.info} shadow-xl rounded-xl px-4 py-3 text-xs max-w-xs`;
+    el.textContent = msg;
+    $('toasts').appendChild(el);
+    setTimeout(() => el.remove(), 4000);
+}
+
+function kpiCard(label, value, sub, subClass = 'text-slate-400', tag = '') {
+    return `<div class="bg-cardBg border border-cardBorder p-5 rounded-2xl">
+        <p class="text-xs text-slate-400 font-medium flex items-center justify-between">${esc(label)}${tag ? `<span class="text-[9px] uppercase tracking-wider text-slate-500 border border-cardBorder rounded px-1.5 py-0.5">${tag}</span>` : ''}</p>
+        <h3 class="text-2xl font-bold text-white mt-1">${value}</h3>
+        <p class="text-xs ${subClass} mt-2">${sub}</p></div>`;
+}
+
+function tbl(head, rows) {
+    return `<div class="overflow-x-auto"><table class="w-full text-xs text-left"><thead><tr>${head.map(h => `<th class="px-3 py-2 text-slate-400 font-semibold border-b border-cardBorder whitespace-nowrap">${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr class="border-b border-cardBorder/50">${r.map(c => `<td class="px-3 py-2 text-slate-200 whitespace-nowrap">${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.borderColor = '#1e293b';
+Chart.defaults.font.family = 'Inter, sans-serif';
+const PALETTE = ['#6366f1', '#8b5cf6', '#10b981', '#f59e0b', '#ec4899', '#06b6d4', '#f43f5e', '#84cc16', '#14b8a6', '#a855f7', '#f97316', '#3b82f6'];
+
+/* ============================================================
+   Abas
+============================================================ */
+const TITLES = {
+    'visao-geral': 'Visão Geral & Indicadores Estratégicos',
+    'analise-planilhas': 'Análise Inteligente de Planilhas & Sheets'
+};
+
+function switchTab(id) {
+    if (!TITLES[id]) id = 'analise-planilhas';
+    Object.keys(TITLES).forEach(t => $('tab-' + t).classList.toggle('hidden', t !== id));
+    document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+    $('page-title').textContent = TITLES[id];
+    try { history.replaceState(null, '', '#' + id); } catch {}
+    const renderers = { 'visao-geral': renderOverview };
+    if (renderers[id]) renderers[id]();
+    window.scrollTo({ top: 0 });
+}
+
+/* ============================================================
+   Dataset (planilha ativa)
+============================================================ */
+let DS = null;
+let dsChart = null;
+let lastAIHtml = '';
+let lastAIReport = '';
+
+function toNum(v) {
+    if (typeof v === 'number') return v;
+    if (v === '' || v == null) return NaN;
+    let s = String(v).trim().replace(/R\$|\s|%/g, '');
+    if (!/^-?[\d.,]+$/.test(s)) return NaN;
+    if (s.includes(',') && s.includes('.')) s = s.replace(/\./g, '').replace(',', '.');
+    else if (s.includes(',')) s = s.replace(',', '.');
+    return Number(s);
+}
+
+function wbToRows(wb) {
+    for (const name of wb.SheetNames) {
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { defval: '', raw: true });
+        if (rows.length) return rows;
+    }
+    throw new Error('Nenhuma aba com dados foi encontrada.');
+}
+
+function setDataset(rows, name, file) {
+    const colSet = new Set();
+    rows.slice(0, 300).forEach(r => Object.keys(r).forEach(k => colSet.add(k)));
+    const columns = [...colSet].filter(c => !/^__EMPTY/.test(c) || rows.some(r => r[c] !== ''));
+    const num = {}, numeric = [];
+    columns.forEach(c => {
+        const vals = rows.map(r => r[c]).filter(v => v !== '' && v != null);
+        if (!vals.length) return;
+        const parsed = rows.map(r => toNum(r[c]));
+        const ok = vals.map(toNum).filter(Number.isFinite).length;
+        if (ok / vals.length >= 0.8) { num[c] = parsed; numeric.push(c); }
+    });
+    DS = { name, rows, columns, num, numeric, stats: {}, file };
+    $('selected-filename').textContent = name;
+    $('file-meta').textContent = `${fmt(rows.length, 0)} linhas · ${columns.length} colunas`;
+    $('status-message').textContent = `Planilha "${name}" carregada. Use as perguntas, o gráfico ou gere o dashboard com IA.`;
+    $('ai-out').innerHTML = '';
+    lastAIHtml = '';
+    $('q-answer').classList.add('hidden');
+    renderDs();
+    toast(`Planilha carregada: ${rows.length} linhas.`, 'ok');
+}
+
+function stat(c) {
+    if (DS.stats[c]) return DS.stats[c];
+    const a = DS.num[c].filter(Number.isFinite).sort((x, y) => x - y);
+    const n = a.length, sum = a.reduce((s, v) => s + v, 0), mean = sum / n;
+    const q = p => { const i = (n - 1) * p, lo = Math.floor(i), hi = Math.ceil(i); return a[lo] + (a[hi] - a[lo]) * (i - lo); };
+    const q1 = q(.25), q3 = q(.75), iqr = q3 - q1;
+    const sd = Math.sqrt(a.reduce((s, v) => s + (v - mean) ** 2, 0) / n);
+    return DS.stats[c] = { n, sum, mean, min: a[0], max: a[n - 1], median: q(.5), sd, lo: q1 - 1.5 * iqr, hi: q3 + 1.5 * iqr };
+}
+
+function outliersOf(c) {
+    const s = stat(c); if (!(s.hi > s.lo)) return [];
+    const out = [];
+    DS.num[c].forEach((x, i) => { if (x < s.lo || x > s.hi) out.push(i); });
+    return out;
+}
+
+function rowLabel(i) {
+    const txt = DS.columns.filter(c => !DS.numeric.includes(c)).slice(0, 3);
+    if (!txt.length) return 'Linha ' + (i + 2);
+    return txt.map(c => String(DS.rows[i][c])).join(' · ').slice(0, 60);
+}
+
+function median(arr) {
+    const s = arr.filter(Number.isFinite).sort((a, b) => a - b), m = s.length >> 1;
+    return s.length ? (s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2) : NaN;
+}
+
+function groupAgg(col, grp, agg) {
+    const mp = new Map();
+    DS.rows.forEach((r, i) => {
+        const x = DS.num[col][i]; if (!Number.isFinite(x)) return;
+        const cell = String(r[grp] ?? '').trim();
+        if (!cell) return; 
+        const raw = prettyLabel(cell.replace(/\s+/g, ' '));
+        const k = norm(raw).replace(/\s+/g, '');
+        const o = mp.get(k) || { s: 0, n: 0, v: [], names: new Map() };
+        o.s += x; o.n++; o.v.push(x); o.names.set(raw, (o.names.get(raw) || 0) + 1); mp.set(k, o);
+    });
+    return [...mp.values()].map(o => {
+        const name = [...o.names].sort((a, b) => b[1] - a[1])[0][0];
+        return [name, agg === 'avg' ? o.s / o.n : agg === 'med' ? median(o.v) : o.s, o.n];
+    }).sort((a, b) => b[1] - a[1]);
+}
+
+function prettyLabel(s) {
+    const m = s.match(/^(\d+(?:[.,]\d+)?)\s*(kb|mb|gb|tb)$/i);
+    return m ? `${parseFloat(m[1].replace(',', '.'))} ${m[2].toUpperCase()}` : s;
+}
+
+function unitNum(s) {
+    const m = String(s).match(/^\s*(-?\d+(?:[.,]\d+)?)\s*([a-zA-Z]*)\s*$/);
+    if (!m) return null;
+    const mult = { '': 1, kb: 1 / 1048576, mb: 1 / 1024, gb: 1, tb: 1024 }[m[2].toLowerCase()];
+    return mult == null ? null : parseFloat(m[1].replace(',', '.')) * mult;
+}
+
+function renderDs() {
+    $('ds-area').classList.toggle('hidden', !DS);
+    if (!DS) return;
+    let empty = 0;
+    DS.rows.forEach(r => DS.columns.forEach(c => { if (r[c] === '' || r[c] == null) empty++; }));
+    const cells = DS.rows.length * DS.columns.length || 1;
+    $('ds-kpis').innerHTML =
+        kpiCard('Linhas', fmt(DS.rows.length, 0), 'registros na planilha') +
+        kpiCard('Colunas', fmt(DS.columns.length, 0), `${DS.numeric.length} numéricas`) +
+        kpiCard('Células vazias', fmt(empty / cells * 100, 1) + '%', `${fmt(empty, 0)} de ${fmt(cells, 0)}`, empty ? 'text-amber-400' : 'text-emerald-400') +
+        kpiCard('Valores discrepantes', fmt(DS.numeric.reduce((s, c) => s + outliersOf(c).length, 0), 0), 'critério IQR 1,5×', 'text-slate-400');
+
+    const txtCols = DS.columns.filter(c => !DS.numeric.includes(c));
+    $('ds-val').innerHTML = DS.numeric.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    $('ds-grp').innerHTML = (txtCols.length ? '' : '<option value="__seq">— sequência das linhas —</option>') + txtCols.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    if (txtCols.length) $('ds-grp').value = txtCols[0];
+
+    $('ds-sort-box').classList.toggle('hidden', !DS.numeric.length);
+    $('ds-sort').innerHTML = DS.numeric.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    const score = DS.numeric.find(c => /nota|score|pontu|avalia|rating|rank|classifica/.test(norm(c)));
+    if (score) $('ds-sort').value = score;
+    renderPreview();
+    renderDsChart();
+}
+
+function renderPreview() {
+    if (!DS) return;
+    const cols = DS.columns, c = DS.numeric.length ? $('ds-sort').value : '';
+    let idx = [...DS.rows.keys()];
+    if (c && DS.num[c]) idx = idx.filter(i => Number.isFinite(DS.num[c][i])).sort((a, b) => DS.num[c][b] - DS.num[c][a]);
+    $('ds-preview-note').textContent = c ? `(10 maiores por "${c}")` : '(10 primeiras linhas)';
+    $('ds-preview').innerHTML = tbl(['#', ...cols], idx.slice(0, 10).map((i, k) => [k + 1, ...cols.map(x => DS.rows[i][x])]));
+}
+
+function renderDsChart() {
+    if (dsChart) { dsChart.destroy(); dsChart = null; }
+    const has = DS && DS.numeric.length;
+    $('ds-chart-empty').classList.toggle('hidden', !!has);
+    $('ds-chart').classList.toggle('hidden', !has);
+    if (!has) return;
+    const v = $('ds-val').value, g = $('ds-grp').value, agg = $('ds-agg').value, type = $('ds-type').value;
+    let labels, data, counts = null;
+    if (g === '__seq') {
+        const idx = [...DS.rows.keys()].slice(0, 60);
+        labels = idx.map(rowLabel); data = idx.map(i => DS.num[v][i]);
+    } else {
+        let arr = groupAgg(v, g, agg).slice(0, type === 'doughnut' ? 12 : 30);
+        const numd = arr.filter(a => unitNum(a[0]) !== null);
+        if (numd.length > 1 && numd.length >= arr.length / 2) {
+            arr = [...numd.sort((a, b) => unitNum(a[0]) - unitNum(b[0])), ...arr.filter(a => unitNum(a[0]) === null)];
+        }
+        labels = arr.map(a => a[0]); data = arr.map(a => a[1]); counts = arr.map(a => a[2]);
+    }
+    const dough = type === 'doughnut';
+    const datasets = [{ label: v, data, backgroundColor: dough ? labels.map((_, i) => PALETTE[i % PALETTE.length]) : 'rgba(99,102,241,.7)', borderColor: dough ? '#131c31' : '#818cf8', borderWidth: dough ? 2 : (type === 'line' ? 2 : 0), borderRadius: 6, tension: .3, pointRadius: 2 }];
+    dsChart = new Chart($('ds-chart'), {
+        type,
+        data: { labels, datasets },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: dough, position: 'right' }, tooltip: { callbacks: { afterLabel: c => counts ? `${fmt(counts[c.dataIndex], 0)} linha(s) na planilha` : '' } } }, scales: dough ? {} : { y: { grid: { color: '#1e293b' } }, x: { grid: { display: false }, ticks: { maxRotation: 45, autoSkip: true } } } }
+    });
+}
+
+/* ---- Carregamento: arquivo, Google Sheets, exemplo ---- */
+async function handleFile(file) {
+    if (typeof XLSX === 'undefined') return toast('Biblioteca de planilhas não carregou. Verifique a conexão.', 'err');
+    try {
+        $('status-message').textContent = 'Lendo arquivo…';
+        const ext = file.name.split('.').pop().toLowerCase();
+        const wb = ['csv', 'tsv', 'txt'].includes(ext)
+            ? XLSX.read(await file.text(), { type: 'string' })
+            : XLSX.read(await file.arrayBuffer(), { type: 'array' });
+        setDataset(wbToRows(wb), file.name, file);
+    } catch (e) {
+        $('status-message').textContent = 'Erro ao ler o arquivo: ' + e.message;
+        toast('Não foi possível ler o arquivo.', 'err');
+    }
+}
+
+async function importSheets() {
+    const url = $('sheets-url').value.trim();
+    const m = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    if (!m) return toast('Cole um link válido do Google Sheets.', 'warn');
+    const gid = (url.match(/[#&?]gid=(\d+)/) || [])[1];
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${m[1]}/gviz/tq?tqx=out:csv${gid ? '&gid=' + gid : ''}`;
+    $('sheets-btn').disabled = true;
+    $('status-message').textContent = 'Buscando planilha no Google Sheets…';
+    try {
+        const r = await fetch(csvUrl);
+        const text = await r.text();
+        if (!r.ok || /^\s*</.test(text)) throw new Error('acesso negado');
+        const wb = XLSX.read(text, { type: 'string' });
+        const file = new File([text], 'google-sheets.csv', { type: 'text/csv' });
+        setDataset(wbToRows(wb), 'Google Sheets', file);
+    } catch (e) {
+        $('status-message').textContent = 'Não foi possível importar. Confirme que a planilha está compartilhada como "Qualquer pessoa com o link".';
+        toast('Falha ao importar do Google Sheets.', 'err');
+    } finally { $('sheets-btn').disabled = false; }
+}
+
+function sampleRows() {
+    const prods = [['Plano Starter', 'Assinatura', 99], ['Plano Pro', 'Assinatura', 299], ['Plano Enterprise', 'Assinatura', 1499], ['Consultoria BI', 'Serviço', 4500], ['Treinamento', 'Serviço', 1200], ['Integração API', 'Serviço', 2500], ['Suporte Premium', 'Suporte', 450], ['Suporte Básico', 'Suporte', 120], ['Módulo CRM', 'Add-on', 350], ['Módulo Financeiro', 'Add-on', 420], ['Módulo RH', 'Add-on', 280], ['Licença Extra', 'Add-on', 90]];
+    const regs = ['Sul', 'Sudeste', 'Nordeste'];
+    let seed = 7; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+    const rows = [];
+    prods.forEach(([p, c, preco]) => regs.forEach(r => {
+        const un = Math.round(40 + rnd() * 160), receita = un * preco, custo = Math.round(receita * (0.35 + rnd() * 0.25));
+        rows.push({ 'Produto': p, 'Categoria': c, 'Região': r, 'Unidades': un, 'Receita (R$)': receita, 'Custo (R$)': custo, 'Margem (%)': 0 });
+    }));
+    rows[10]['Custo (R$)'] *= 4;
+    rows.forEach(x => x['Margem (%)'] = Math.round((1 - x['Custo (R$)'] / x['Receita (R$)']) * 1000) / 10);
+    return rows;
+}
+
+function loadSample() {
+    const rows = sampleRows();
+    const csv = XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(rows));
+    setDataset(rows, 'exemplo_vendas.csv', new File([csv], 'exemplo_vendas.csv', { type: 'text/csv' }));
+}
+
+/* ---- Perguntas em linguagem natural (análise local) ---- */
+function findCols(qn, list) {
+    return list.filter(c => {
+        const cn = norm(c);
+        return qn.includes(cn) || cn.split(/[\s_\-\/()%$]+/).some(t => t.length >= 4 && qn.includes(t));
+    });
+}
+
+function answerQuestion(q) {
+    const qn = norm(q), numCols = DS.numeric, catCols = DS.columns.filter(c => !numCols.includes(c));
+    const nc = findCols(qn, numCols), cc = findCols(qn, catCols);
+    const has = re => re.test(qn);
+    const p = t => `<p class="text-sm text-slate-200 leading-relaxed">${t}</p>`;
+
+    if (has(/quantos|quantas|numero de linhas|total de linhas|registros/) && !nc.length) {
+        if (cc.length) {
+            const n = new Set(DS.rows.map(r => r[cc[0]])).size;
+            return p(`A coluna <strong>${esc(cc[0])}</strong> tem <strong>${fmt(n, 0)}</strong> valores distintos em ${fmt(DS.rows.length, 0)} linhas.`);
+        }
+        return p(`A planilha tem <strong>${fmt(DS.rows.length, 0)}</strong> linhas e <strong>${DS.columns.length}</strong> colunas (${DS.numeric.length} numéricas).`);
+    }
+
+    if (has(/discrepan|outlier|anomal|atipic|fora do padrao|estranh/)) {
+        if (!numCols.length) return p('Não há colunas numéricas para detectar discrepâncias.');
+        const cols = nc.length ? nc : numCols, out = [];
+        cols.forEach(c => { const s = stat(c); outliersOf(c).forEach(i => out.push([rowLabel(i), c, fmt(DS.num[c][i]), `${fmt(s.lo)} a ${fmt(s.hi)}`])); });
+        if (!out.length) return p('Nenhum valor discrepante encontrado nas colunas analisadas (critério IQR 1,5×).');
+        return p(`Encontrei <strong>${out.length}</strong> valor(es) fora do intervalo esperado (critério IQR 1,5×):`) + tbl(['Registro', 'Coluna', 'Valor', 'Faixa esperada'], out.slice(0, 12)) + (out.length > 12 ? `<p class="text-xs text-slate-500">…e mais ${out.length - 12}.</p>` : '');
+    }
+
+    const wantMax = has(/maior|maxim|mais alto|mais alta|melhor|top|lidera/), wantMin = has(/menor|minim|mais baix|pior/);
+    if ((wantMax || wantMin) && numCols.length) {
+        const c = nc[0] || numCols[0], lc = cc[0], asc = wantMin && !wantMax;
+        const idx = [...DS.rows.keys()].filter(i => Number.isFinite(DS.num[c][i])).sort((a, b) => asc ? DS.num[c][a] - DS.num[c][b] : DS.num[c][b] - DS.num[c][a]).slice(0, 5);
+        const lab = i => lc ? String(DS.rows[i][lc]) : rowLabel(i);
+        return p(`${asc ? 'Menor' : 'Maior'} valor de <strong>${esc(c)}</strong>: <strong>${esc(lab(idx[0]))}</strong> (${fmt(DS.num[c][idx[0]])}).`) + tbl([lc || 'Registro', c], idx.map(i => [lab(i), fmt(DS.num[c][i])]));
+    }
+
+    if (numCols.length && (has(/media|medio|total|soma|somar|acumulad/) || (nc.length && cc.length))) {
+        const avg = has(/media|medio/), cols = nc.length ? nc : numCols, nome = avg ? 'Média' : 'Soma';
+        if (cc.length) {
+            const c = cols[0], g = groupAgg(c, cc[0], avg ? 'avg' : 'sum');
+            return p(`${nome} de <strong>${esc(c)}</strong> por <strong>${esc(cc[0])}</strong>:`) + tbl([cc[0], `${nome} de ${c}`], g.slice(0, 10).map(([k, v]) => [k, fmt(v)]));
+        }
+        return p(`${nome} por coluna numérica:`) + tbl(['Coluna', nome], cols.map(c => [c, fmt(avg ? stat(c).mean : stat(c).sum)]));
+    }
+
+    if (!numCols.length) return p(`A planilha tem ${DS.columns.length} colunas de texto: ${DS.columns.map(esc).join(', ')}.`);
+    const intro = has(/resum|visao geral|panorama/) ? 'Resumo estatístico das colunas numéricas:' : 'Não identifiquei uma operação específica na pergunta, então aqui está o resumo estatístico. Tente "maior valor", "média", "total por <coluna>" ou "valores discrepantes".';
+    return p(intro) + tbl(['Coluna', 'Mín', 'Média', 'Mediana', 'Máx', 'Soma'], numCols.map(c => { const s = stat(c); return [c, fmt(s.min), fmt(s.mean), fmt(s.median), fmt(s.max), fmt(s.sum)]; }));
+}
+
+function runQuestion(q) {
+    q = q.trim(); if (!q) return;
+    $('q-input').value = q;
+    const box = $('q-answer');
+    if (!DS) {
+        box.classList.remove('hidden');
+        box.innerHTML = `<p class="text-sm text-slate-300">Carregue uma planilha primeiro (arquivo, link do Google Sheets ou dados de exemplo) para eu poder responder.</p>`;
+        return toast('Nenhuma planilha carregada.', 'warn');
+    }
+    box.classList.remove('hidden');
+    box.innerHTML = `<p class="text-xs text-indigo-400 font-semibold"><i class="fa-solid fa-comment mr-1"></i>${esc(q)}</p>` + answerQuestion(q);
+}
+
+/* ---- Dashboard com IA (backend FastAPI) ---- */
+async function generateAI() {
+    if (!DS || !DS.file) return toast('Carregue uma planilha primeiro.', 'warn');
+    const btn = $('ai-btn'), out = $('ai-out');
+    btn.disabled = true; btn.classList.add('opacity-60');
+    $('status-message').textContent = 'Processando dados estatísticos e construindo o dashboard inteligente com Agno...';
+    out.innerHTML = `<div class="bg-darkBg border border-cardBorder p-10 rounded-xl text-center space-y-3">
+        <div class="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <p class="text-sm font-semibold text-slate-300">Analisando planilha e gerando dashboard executivo…</p></div>`;
+    try {
+        const fd = new FormData(); fd.append('file', DS.file, DS.file.name);
+        const resp = await fetch(API_URL + '/api/generate-from-file', { method: 'POST', body: fd });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok) throw new Error(data.detail || `Erro no servidor: ${resp.status}`);
+        const res = data.result || data;
+        const report = res.report || res.Relatorio || res.REPORT || 'Relatório executivo gerado com sucesso.';
+        let html = res.html_dashboard || res.html || res.HTML_Dashboard || res.HTML || '';
+        html = html.replace(/^```(?:html)?\s*/i, '').replace(/```\s*$/, '');
+        lastAIHtml = html;
+        lastAIReport = report;
+
+        out.innerHTML = `
+            <div class="space-y-2"><div class="flex items-center justify-between gap-2"><h4 class="text-sm font-bold text-white"><i class="fa-solid fa-file-contract text-indigo-400 mr-2"></i>Relatório Executivo</h4>
+                <button id="ai-pdf" class="text-xs bg-darkBg border border-cardBorder hover:bg-slate-800 text-slate-200 px-3 py-1.5 rounded-lg"><i class="fa-solid fa-file-pdf mr-1"></i>Baixar PDF</button></div>
+                <div class="md bg-darkBg p-4 rounded-xl border border-cardBorder">${mdHtml(report)}</div></div>
+            <div class="space-y-2">
+                <div class="flex items-center justify-between gap-2">
+                    <h4 class="text-sm font-bold text-white"><i class="fa-solid fa-chart-line text-indigo-400 mr-2"></i>Dashboard Interativo</h4>
+                    <div class="flex gap-2">
+                        <button id="ai-open" class="text-xs bg-darkBg border border-cardBorder hover:bg-slate-800 text-slate-200 px-3 py-1.5 rounded-lg"><i class="fa-solid fa-up-right-from-square mr-1"></i>Abrir em nova aba</button>
+                        <button id="ai-dl" class="text-xs bg-darkBg border border-cardBorder hover:bg-slate-800 text-slate-200 px-3 py-1.5 rounded-lg"><i class="fa-solid fa-download mr-1"></i>Baixar HTML</button>
+                    </div>
+                </div>
+                <div id="ai-frame-box"></div>
+            </div>`;
+        const frame = document.createElement('iframe');
+        frame.className = 'w-full h-[650px] border-0 rounded-xl bg-white';
+        frame.setAttribute('sandbox', 'allow-scripts');
+        frame.srcdoc = html || '<p style="font-family:sans-serif;padding:1rem">Dashboard não gerado.</p>';
+        $('ai-frame-box').appendChild(frame);
+        $('ai-open').onclick = () => { const u = URL.createObjectURL(new Blob([lastAIHtml], { type: 'text/html' })); window.open(u, '_blank'); };
+        $('ai-pdf').onclick = () => printMarkdown('Relatório Executivo - ' + (DS ? DS.name : 'Planilha'), lastAIReport);
+        $('ai-dl').onclick =() => downloadBlob(new Blob([lastAIHtml], { type: 'text/html' }), 'dashboard.html');
+        $('status-message').textContent = 'Dashboard e relatório gerados com sucesso!';
+        toast('Dashboard gerado com IA.', 'ok');
+    } catch (err) {
+        $('status-message').textContent = 'Erro ao gerar com IA.';
+        const net = err instanceof TypeError;
+        out.innerHTML = `<div class="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-xl text-sm space-y-1">
+            <p><strong class="font-bold">Erro ao gerar dashboard:</strong> ${esc(net ? 'não foi possível conectar ao backend.' : err.message)}</p>
+            ${net ? `<p class="text-xs text-red-300/80">Confirme que a API está rodando em ${API_URL} (<code>python main.py</code> ou <code>uvicorn main:app --reload</code>).</p>` : ''}</div>`;
+    } finally { btn.disabled = false; btn.classList.remove('opacity-60'); }
+}
+
+function downloadBlob(blob, name) {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+async function pingApi() {
+    const dot = $('api-dot'), txt = $('api-text');
+    try {
+        const r = await fetch(API_URL + '/docs', { method: 'GET' });
+        if (!r.ok) throw 0;
+        dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse'; txt.textContent = 'IA Conectada'; txt.parentElement.className = 'text-[10px] text-emerald-400 flex items-center gap-1 mt-0.5';
+    } catch {
+        dot.className = 'w-1.5 h-1.5 rounded-full bg-rose-400'; txt.textContent = 'Backend offline'; txt.parentElement.className = 'text-[10px] text-rose-400 flex items-center gap-1 mt-0.5';
+    }
+}
+
+/* ============================================================
+   Visão Geral (TOTALMENTE CONECTADA E DINÂMICA)
+============================================================ */
+let ovChart = null;
+
+function buildInsights() {
+    const list = [];
+
+    if (DS) {
+        const totalOutliers = DS.numeric.reduce((s, c) => s + outliersOf(c).length, 0);
+        if (totalOutliers > 0) {
+            list.push({
+                id: `out-${DS.name}-${totalOutliers}`,
+                type: 'Análise de Planilha',
+                c: 'text-amber-400',
+                text: `Identificamos ${totalOutliers} valor(es) discrepante(s) na planilha "${DS.name}". Recomendamos revisar na aba Análise de Planilhas.`,
+                when: 'Agora'
+            });
+        }
+        if (DS.rows.length > 0) {
+            list.push({
+                id: `ds-loaded-${DS.name}`,
+                type: 'Dados Ativos',
+                c: 'text-indigo-400',
+                text: `Planilha "${DS.name}" pronta com ${fmt(DS.rows.length, 0)} registros e ${DS.numeric.length} coluna(s) métrica(s).`,
+                when: 'Agora'
+            });
+        }
+    } else {
+        list.push({
+            id: 'no-ds-notice',
+            type: 'Ação Recomendada',
+            c: 'text-indigo-400',
+            text: 'Nenhuma planilha foi enviada até o momento. Envie uma planilha na aba "Análise de Planilhas" para preencher este painel com dados reais.',
+            when: 'Agora'
+        });
+    }
+
+    return list;
+}
+
+function renderOverview() {
+    let kpisHtml = '';
+
+    if (DS && DS.numeric.length > 0) {
+        const col1 = DS.numeric[0];
+        const col2 = DS.numeric[1] || null;
+        const txtCols = DS.columns.filter(c => !DS.numeric.includes(c));
+        const totalOut = DS.numeric.reduce((s, c) => s + outliersOf(c).length, 0);
+
+        kpisHtml += kpiCard(`Total de ${col1}`, fmt(stat(col1).sum), `Soma dos registros de ${col1}`, 'text-emerald-400', 'Planilha Ativa');
+
+        if (col2) {
+            kpisHtml += kpiCard(`Total de ${col2}`, fmt(stat(col2).sum), `Soma dos registros de ${col2}`, 'text-indigo-400', 'Planilha Ativa');
+        } else {
+            kpisHtml += kpiCard('Registros', fmt(DS.rows.length, 0), 'Total de linhas na planilha', 'text-slate-400', 'Planilha Ativa');
+        }
+
+        // Métrica nova: quem mais contribui para o total da primeira coluna numérica
+        const total = stat(col1).sum;
+        const top = txtCols.length ? groupAgg(col1, txtCols[0], 'sum')[0] : null;
+        if (top && total > 0) {
+            const share = top[1] / total * 100;
+            kpisHtml += kpiCard(`Maior ${txtCols[0]}`, `<span class="block truncate" title="${esc(top[0])}">${esc(top[0])}</span>`, `${fmt(share, 1)}% do total de ${esc(col1)}`, share > 50 ? 'text-amber-400' : 'text-emerald-400', 'Concentração');
+        } else {
+            kpisHtml += kpiCard(`Média de ${col1}`, fmt(stat(col1).mean), `Mediana: ${fmt(stat(col1).median)}`, 'text-indigo-400', 'Estatística');
+        }
+
+        kpisHtml += kpiCard('Valores Discrepantes', fmt(totalOut, 0), totalOut ? 'revisar na aba Análise de Planilhas' : 'nenhum encontrado', totalOut ? 'text-amber-400' : 'text-emerald-400', 'Qualidade');
+    } else if (DS) {
+        kpisHtml += kpiCard('Registros', fmt(DS.rows.length, 0), 'Linhas importadas', 'text-slate-400', 'Planilha Ativa');
+        kpisHtml += kpiCard('Colunas', fmt(DS.columns.length, 0), 'Colunas de texto', 'text-slate-400', 'Planilha Ativa');
+        kpisHtml += kpiCard('Maior Contribuinte', '—', 'Sem colunas numéricas', 'text-slate-500', 'Concentração');
+        kpisHtml += kpiCard('Valores Discrepantes', '—', 'Sem colunas numéricas', 'text-slate-500', 'Qualidade');
+    } else {
+        kpisHtml += kpiCard('Planilha Ativa', 'Nenhuma', 'Carregue um arquivo para ver as métricas', 'text-amber-400');
+        kpisHtml += kpiCard('Métricas de Dados', '—', 'Sem colunas para analisar', 'text-slate-500');
+        kpisHtml += kpiCard('Maior Contribuinte', '—', 'Disponível após carregar uma planilha', 'text-slate-500', 'Concentração');
+        kpisHtml += kpiCard('Valores Discrepantes', '—', 'Disponível após carregar uma planilha', 'text-slate-500', 'Qualidade');
+    }
+
+    $('ov-kpis').innerHTML = kpisHtml;
+
+    // Gráfico consolidado dinâmico
+    if (ovChart) { ovChart.destroy(); ovChart = null; }
+
+    if (DS && DS.numeric.length > 0) {
+        $('ov-chart-empty').classList.add('hidden');
+        $('ov-chart').classList.remove('hidden');
+
+        const colVal = DS.numeric[0];
+        const txtCols = DS.columns.filter(c => !DS.numeric.includes(c));
+        const colGrp = txtCols.length ? txtCols[0] : null;
+
+        let labels = [], data = [];
+        if (colGrp) {
+            const grouped = groupAgg(colVal, colGrp, 'sum').slice(0, 10);
+            labels = grouped.map(g => g[0]);
+            data = grouped.map(g => g[1]);
+            $('ov-chart-title').textContent = `Top 10 ${colGrp} por ${colVal}`;
+        } else {
+            const idx = [...DS.rows.keys()].slice(0, 15);
+            labels = idx.map(i => `Linha ${i + 1}`);
+            data = idx.map(i => DS.num[colVal][i]);
+            $('ov-chart-title').textContent = `Valores de ${colVal} (Amostra de registros)`;
+        }
+
+        ovChart = new Chart($('ov-chart'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    label: colVal,
+                    data,
+                    backgroundColor: '#6366f1',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { grid: { color: '#1e293b' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    } else {
+        $('ov-chart').classList.add('hidden');
+        $('ov-chart-empty').classList.remove('hidden');
+        $('ov-chart-title').textContent = 'Análise Consolidada da Planilha';
+    }
+
+    // Painel lateral de status da planilha
+    if (DS) {
+        $('ov-ds').innerHTML = `<h3 class="font-bold text-white text-base">Planilha ativa</h3>
+            <p class="text-xs text-slate-400 truncate">${esc(DS.name)} · ${fmt(DS.rows.length, 0)} linhas · ${DS.columns.length} colunas</p>
+            <div class="space-y-2 pt-1">${DS.numeric.slice(0, 5).map(c => `<div class="flex justify-between text-xs bg-darkBg border border-cardBorder rounded-lg px-3 py-2"><span class="text-slate-400 truncate pr-2">Soma · ${esc(c)}</span><span class="text-slate-100 font-semibold">${fmt(stat(c).sum)}</span></div>`).join('') || '<p class="text-xs text-slate-500">Sem colunas numéricas.</p>'}</div>`;
+    } else {
+        $('ov-ds').innerHTML = `<h3 class="font-bold text-white text-base">Planilha ativa</h3>
+            <p class="text-sm text-slate-400">Nenhuma planilha carregada. Envie um arquivo ou use os dados de exemplo para alimentar os dados da Visão Geral.</p>
+            <button id="ov-goto" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-semibold">Carregar planilha</button>`;
+        $('ov-goto').onclick = () => switchTab('analise-planilhas');
+    }
+
+    // Insights dinâmicos
+    const dismissed = store.get('dismissed', []);
+    const items = buildInsights().filter(i => !dismissed.includes(i.id));
+    $('ov-restore').classList.toggle('hidden', !dismissed.length);
+    $('ov-insights').innerHTML = items.length ? items.map(i => `<div class="bg-darkBg border border-cardBorder p-4 rounded-xl flex items-start justify-between gap-4">
+        <div><span class="text-xs ${i.c} font-semibold uppercase tracking-wider">${esc(i.type)}</span>
+        <p class="text-sm text-slate-200 mt-1">${esc(i.text)}</p></div>
+        <div class="text-right shrink-0"><span class="text-xs text-slate-500">${i.when}</span><br><button data-dismiss="${esc(i.id)}" class="text-[11px] text-slate-500 hover:text-white mt-1">Dispensar</button></div></div>`).join('') : '<p class="text-sm text-slate-500">Sem insights no momento.</p>';
+}
+
+/* ============================================================
+   Exportação em PDF
+============================================================ */
+function printMarkdown(title, md) {
+    const w = window.open('', '_blank');
+    if (!w) return toast('Permita pop-ups para baixar o PDF.', 'warn');
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>body{font-family:Inter,Arial,sans-serif;max-width:800px;margin:40px auto;color:#111;line-height:1.55;padding:0 16px}table{border-collapse:collapse;width:100%;margin:12px 0}th,td{border:1px solid #ccc;padding:6px 10px;text-align:left;font-size:13px}th{background:#f3f4f6}blockquote{color:#555;border-left:3px solid #6366f1;margin:12px 0;padding-left:12px}h1{font-size:24px}h2{font-size:18px;margin-top:26px;border-bottom:1px solid #e5e7eb;padding-bottom:4px}</style></head><body>${mdHtml(md)}</body></html>`);
+    w.document.close(); w.focus(); setTimeout(() => w.print(), 400);
+}
+
+/* ============================================================
+   Eventos
+============================================================ */
+function init() {
+    $('date-pill').textContent = new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
+
+    const sidebar = $('sidebar');
+    const closeBtn = $('close-sidebar');
+    const openBtn = $('open-sidebar');
+
+    if (closeBtn && openBtn && sidebar) {
+        closeBtn.addEventListener('click', () => {
+            sidebar.classList.add('!hidden');
+            openBtn.classList.remove('hidden');
+        });
+
+        openBtn.addEventListener('click', () => {
+            sidebar.classList.remove('!hidden');
+            openBtn.classList.add('hidden');
+        });
+    }
+
+    document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+    $('new-query').addEventListener('click', () => { switchTab('analise-planilhas'); $('q-input').focus(); });
+
+    // Análise
+    $('q-form').addEventListener('submit', ev => { ev.preventDefault(); runQuestion($('q-input').value); });
+    $('q-chips').addEventListener('click', ev => { const b = ev.target.closest('[data-q]'); if (b) runQuestion(b.dataset.q); });
+    $('fileInput').addEventListener('change', ev => { const f = ev.target.files[0]; if (f) handleFile(f); ev.target.value = ''; });
+    $('sheets-btn').addEventListener('click', importSheets);
+    $('sheets-url').addEventListener('keydown', ev => { if (ev.key === 'Enter') importSheets(); });
+    $('sample-btn').addEventListener('click', loadSample);
+    ['ds-val', 'ds-grp', 'ds-agg', 'ds-type'].forEach(id => $(id).addEventListener('change', renderDsChart));
+    $('ai-btn').addEventListener('click', generateAI);
+    $('ds-sort').addEventListener('change', renderPreview);
+
+    // Visão geral
+    $('ov-insights').addEventListener('click', ev => {
+        const b = ev.target.closest('[data-dismiss]'); if (!b) return;
+        const d = store.get('dismissed', []); d.push(b.dataset.dismiss); store.set('dismissed', d); renderOverview();
+    });
+    $('ov-restore').addEventListener('click', () => { store.set('dismissed', []); renderOverview(); });
+
+    pingApi();
+    switchTab((location.hash || '').replace('#', '') || 'visao-geral');
+}
+init();
+</script>
+</body>
+</html>
